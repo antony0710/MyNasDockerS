@@ -1,0 +1,196 @@
+services:
+  webtube:
+    # 使用 yt-dlp 為基礎的 WebTube 映像檔，提供 YouTube 影片下載功能
+    # Uses yt-dlp based WebTube image, provides YouTube video download functionality
+    image: alexta69/metube:latest
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: webtube
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID，確保檔案權限正確
+      # User ID and Group ID to ensure correct file permissions
+      - PUID=1000
+      - PGID=1000
+      
+      # yt-dlp 設定選項
+      # yt-dlp configuration options
+      - YTDL_OPTIONS='{"writesubtitles": true, "writeautomaticsub": true, "subtitleslangs": ["zh-TW", "zh-CN", "en"]}'
+      
+      # 輸出檔案名稱模板
+      # Output filename template
+      - OUTPUT_TEMPLATE='%(uploader)s/%(title)s.%(ext)s'
+      
+      # 下載品質設定 (best/worst/bestvideo+bestaudio)
+      # Download quality setting (best/worst/bestvideo+bestaudio)
+      - DOWNLOAD_QUALITY='best'
+      
+      # 啟用音訊轉換
+      # Enable audio conversion
+      - AUDIO_CONVERT=true
+      
+      # 預設音訊格式
+      # Default audio format
+      - AUDIO_FORMAT=mp3
+      
+      # 啟用影片轉換
+      # Enable video conversion
+      - VIDEO_CONVERT=false
+      
+      # 最大併發下載數
+      # Maximum concurrent downloads
+      - MAX_DOWNLOADS=3
+      
+      # 啟用暗黑主題
+      # Enable dark theme
+      - DARK_MODE=true
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # 下載目錄，存放所有下載的影片和音訊檔案
+      # Download directory for all downloaded video and audio files
+      - ./webtube/downloads:/downloads
+      
+      # 設定檔案存放位置 (可選)
+      # Configuration files location (optional)
+      - ./webtube/config:/config
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Web UI 存取端口
+      # Web UI access port
+      - "8081:8081"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Web UI 服務是否正常運行
+      # Check if Web UI service is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:8081 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 資源限制設定 (可選)
+    # Resource limits configuration (optional)
+    deploy:
+      resources:
+        limits:
+          # CPU 使用限制
+          # CPU usage limit
+          cpus: '2.0'
+          # 記憶體使用限制
+          # Memory usage limit
+          memory: 2G
+        reservations:
+          # 保留的 CPU 資源
+          # Reserved CPU resources
+          cpus: '0.5'
+          # 保留的記憶體資源
+          # Reserved memory resources
+          memory: 512M
+    
+    # 額外的 Docker 運行參數 (可選)
+    # Additional Docker run parameters (optional)
+    # security_opt:
+    #   - no-new-privileges:true
+    # 
+    # cap_drop:
+    #   - ALL
+    # 
+    # read_only: true
+    # 
+    # tmpfs:
+    #   - /tmp:noexec,nosuid,size=100m
+
+  # 可選：Redis 快取服務，提升效能
+  # Optional: Redis cache service for better performance
+  redis:
+    # 使用官方 Redis 映像檔
+    # Uses official Redis image
+    image: redis:7-alpine
+    
+    # 容器名稱
+    # Container name
+    container_name: webtube-redis
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+    
+    # 卷映射設定，持久化 Redis 資料
+    # Volume mapping configuration, persist Redis data
+    volumes:
+      # Redis 資料存放位置
+      # Redis data storage location
+      - ./webtube/redis:/data
+    
+    # 端口映射 (僅內部使用，不對外開放)
+    # Port mapping (internal use only, not exposed externally)
+    expose:
+      - "6379"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Redis 服務是否正常運行
+      # Check if Redis service is running properly
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    
+    # 資源限制設定
+    # Resource limits configuration
+    deploy:
+      resources:
+        limits:
+          # CPU 使用限制
+          # CPU usage limit
+          cpus: '0.5'
+          # 記憶體使用限制
+          # Memory usage limit
+          memory: 256M
+        reservations:
+          # 保留的 CPU 資源
+          # Reserved CPU resources
+          cpus: '0.1'
+          # 保留的記憶體資源
+          # Reserved memory resources
+          memory: 128M
+
+# 網路設定
+# Network configuration
+networks:
+  default:
+    # 建立自定義橋接網路
+    # Create custom bridge network
+    driver: bridge
+    
+    # 網路設定
+    # Network configuration
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

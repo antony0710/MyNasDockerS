@@ -1,0 +1,150 @@
+services:
+  aria2:
+    # 使用官方 Aria2 Docker 映像檔，提供高效能的下載管理功能
+    # Uses official Aria2 Docker image, provides high-performance download management
+    image: p3terx/aria2-pro:latest
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: aria2-pro
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # Aria2 RPC 密鑰，用於安全連接 Web UI
+      # Aria2 RPC secret key for secure Web UI connection
+      - RPC_SECRET=your_secret_key_here
+      
+      # RPC 監聽端口
+      # RPC listening port
+      - RPC_PORT=6800
+      
+      # 監聽所有網路介面
+      # Listen on all network interfaces
+      - LISTEN_PORT=6888
+      
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID，確保檔案權限正確
+      # User ID and Group ID to ensure correct file permissions
+      - PUID=1000
+      - PGID=1000
+      
+      # 磁碟快取設定，提升效能
+      # Disk cache configuration for better performance
+      - DISK_CACHE=64M
+      
+      # 開啟 IPv6 支援
+      # Enable IPv6 support
+      - IPV6_MODE=false
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # Aria2 設定檔案存放位置
+      # Aria2 configuration files location
+      - ./aria2/config:/config
+      
+      # 下載目錄，存放所有下載的檔案
+      # Download directory for all downloaded files
+      - ./aria2/downloads:/downloads
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # RPC 服務端口，用於 Web UI 連接
+      # RPC service port for Web UI connection
+      - "6800:6800"
+      
+      # DHT 端口，用於 BitTorrent 下載
+      # DHT port for BitTorrent downloads
+      - "6888:6888"
+      - "6888:6888/udp"
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - aria2-network
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 RPC 服務是否正常運行
+      # Check if RPC service is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:6800/jsonrpc || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 資源限制設定 (可選)
+    # Resource limits configuration (optional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+  ariang:
+    # 使用 AriaNg Web UI 映像檔，提供美觀的下載管理介面
+    # Uses AriaNg Web UI image, provides beautiful download management interface
+    image: p3terx/ariang:latest
+    
+    # 容器名稱
+    # Container name
+    container_name: ariang
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Web UI 存取端口
+      # Web UI access port
+      - "6880:6880"
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - aria2-network
+    
+    # 依賴關係，確保 aria2 服務先啟動
+    # Dependencies, ensure aria2 service starts first
+    depends_on:
+      - aria2
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Web UI 服務是否正常運行
+      # Check if Web UI service is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:6880 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# 網路設定
+# Network configuration
+networks:
+  aria2-network:
+    # 建立自定義橋接網路
+    # Create custom bridge network
+    driver: bridge
+    
+    # 網路設定
+    # Network configuration
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

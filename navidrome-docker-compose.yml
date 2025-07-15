@@ -1,0 +1,221 @@
+services:
+  navidrome:
+    # 使用官方 Navidrome Docker 映像檔，提供現代化的音樂串流服務
+    # Uses official Navidrome Docker image, provides modern music streaming service
+    image: deluan/navidrome:latest
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: navidrome
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID，確保檔案權限正確
+      # User ID and Group ID to ensure correct file permissions
+      - PUID=1000
+      - PGID=1000
+      
+      # Navidrome 基本設定
+      # Navidrome basic configuration
+      - ND_MUSICFOLDER=/music
+      - ND_DATAFOLDER=/data
+      - ND_CACHEFOLDER=/cache
+      
+      # 掃描設定
+      # Scan configuration
+      - ND_SCANSCHEDULE=1h           # 掃描間隔時間 / Scan interval
+      - ND_LOGLEVEL=info             # 日誌級別 / Log level
+      - ND_SESSIONTIMEOUT=24h        # 會話超時時間 / Session timeout
+      
+      # 網路設定
+      # Network configuration
+      - ND_PORT=4533                 # 服務端口 / Service port
+      - ND_ADDRESS=0.0.0.0           # 監聽地址 / Listen address
+      - ND_BASEURL=                  # 基礎 URL (如果使用反向代理) / Base URL (if using reverse proxy)
+      
+      # 安全設定
+      # Security configuration
+      - ND_ENABLETRANSCODINGCONFIG=true    # 啟用轉碼設定 / Enable transcoding configuration
+      - ND_ENABLEDOWNLOADS=true            # 啟用下載功能 / Enable downloads
+      - ND_ENABLEFAVOURITES=true           # 啟用收藏功能 / Enable favorites
+      - ND_ENABLESTARRATING=true           # 啟用星級評分 / Enable star rating
+      - ND_ENABLEUSEREDITING=true          # 啟用用戶編輯 / Enable user editing
+      
+      # 轉碼設定
+      # Transcoding configuration
+      - ND_DEFAULTTHEME=Dark               # 預設主題 / Default theme
+      - ND_DEFAULTLANGUAGE=zh-Hant         # 預設語言 / Default language
+      - ND_FFMPEGPATH=/usr/bin/ffmpeg      # FFmpeg 路徑 / FFmpeg path
+      
+      # 媒體庫設定
+      # Media library configuration
+      - ND_COVERARTPRIORITY=embedded,cover.jpg,cover.png,folder.jpg,folder.png
+      - ND_INDEXGROUPS=A B C D E F G H I J K L M N O P Q R S T U V W X Y Z(zh) [Unknown]
+      
+      # 串流設定
+      # Streaming configuration
+      - ND_MAXSIDEBARPLAYLISTS=100         # 側邊欄播放清單最大數量 / Max sidebar playlists
+      - ND_RECENTLYADDEDBYMODTIME=true     # 依修改時間排序最近新增 / Sort recently added by modification time
+      
+      # 外部服務整合 (可選)
+      # External service integration (optional)
+      - ND_LASTFM_ENABLED=true             # 啟用 Last.fm 整合 / Enable Last.fm integration
+      - ND_LASTFM_APIKEY=                  # Last.fm API Key (需要註冊) / Last.fm API Key (registration required)
+      - ND_LASTFM_SECRET=                  # Last.fm Secret (需要註冊) / Last.fm Secret (registration required)
+      
+      # Spotify 整合 (可選)
+      # Spotify integration (optional)
+      - ND_SPOTIFY_ID=                     # Spotify Client ID (需要註冊) / Spotify Client ID (registration required)
+      - ND_SPOTIFY_SECRET=                 # Spotify Client Secret (需要註冊) / Spotify Client Secret (registration required)
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # 音樂檔案目錄 (唯讀)
+      # Music files directory (read-only)
+      - /path/to/your/music:/music:ro
+      
+      # 資料目錄，存放資料庫和設定檔
+      # Data directory for database and configuration files
+      - ./navidrome/data:/data
+      
+      # 快取目錄，存放縮圖和轉碼檔案
+      # Cache directory for thumbnails and transcoded files
+      - ./navidrome/cache:/cache
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Web UI 和 API 存取端口
+      # Web UI and API access port
+      - "4533:4533"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查服務是否正常運行
+      # Check if service is running properly
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4533/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 資源限制設定 (可選)
+    # Resource limits configuration (optional)
+    deploy:
+      resources:
+        limits:
+          # CPU 使用限制
+          # CPU usage limit
+          cpus: '1.0'
+          # 記憶體使用限制
+          # Memory usage limit
+          memory: 512M
+        reservations:
+          # 保留的 CPU 資源
+          # Reserved CPU resources
+          cpus: '0.25'
+          # 保留的記憶體資源
+          # Reserved memory resources
+          memory: 256M
+    
+    # 安全設定 (可選)
+    # Security configuration (optional)
+    security_opt:
+      # 禁用新權限
+      # Disable new privileges
+      - no-new-privileges:true
+    
+    # 移除不必要的能力
+    # Remove unnecessary capabilities
+    cap_drop:
+      - ALL
+    
+    # 僅保留必要的能力
+    # Keep only necessary capabilities
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    
+    # 依賴關係 (如果有外部資料庫)
+    # Dependencies (if using external database)
+    # depends_on:
+    #   - postgres
+
+# 可選：PostgreSQL 資料庫服務
+# Optional: PostgreSQL database service
+# postgres:
+#   # 使用官方 PostgreSQL 映像檔
+#   # Uses official PostgreSQL image
+#   image: postgres:15-alpine
+#   
+#   # 容器名稱
+#   # Container name
+#   container_name: navidrome-postgres
+#   
+#   # 容器重啟策略
+#   # Container restart policy
+#   restart: unless-stopped
+#   
+#   # 環境變量設定
+#   # Environment variables configuration
+#   environment:
+#     # 設定時區
+#     # Set timezone
+#     - TZ=Asia/Taipei
+#     
+#     # PostgreSQL 設定
+#     # PostgreSQL configuration
+#     - POSTGRES_DB=navidrome
+#     - POSTGRES_USER=navidrome
+#     - POSTGRES_PASSWORD=your_secure_password_here
+#     - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+#   
+#   # 卷映射設定
+#   # Volume mapping configuration
+#   volumes:
+#     # PostgreSQL 資料存放位置
+#     # PostgreSQL data storage location
+#     - ./navidrome/postgres:/var/lib/postgresql/data
+#   
+#   # 端口映射 (僅內部使用)
+#   # Port mapping (internal use only)
+#   expose:
+#     - "5432"
+#   
+#   # 健康檢查設定
+#   # Health check configuration
+#   healthcheck:
+#     # 檢查資料庫是否正常運行
+#     # Check if database is running properly
+#     test: ["CMD-SHELL", "pg_isready -U navidrome"]
+#     interval: 30s
+#     timeout: 10s
+#     retries: 3
+#     start_period: 40s
+
+# 網路設定
+# Network configuration
+networks:
+  default:
+    # 建立自定義橋接網路
+    # Create custom bridge network
+    driver: bridge
+    
+    # 網路設定
+    # Network configuration
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
