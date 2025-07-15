@@ -1,0 +1,132 @@
+services:
+  jellyfin:
+    # 使用官方 Jellyfin Docker 映像檔，latest 標籤會自動取得最新版本
+    # Uses official Jellyfin Docker image, latest tag automatically gets the newest version
+    image: jellyfin/jellyfin:latest
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: jellyfin
+    
+    # 使用主機網路模式，簡化網路設定並提供更好的效能
+    # Uses host network mode to simplify network configuration and provide better performance
+    network_mode: host
+    
+    # 替代網路設定：如果不使用 host 模式，可以使用以下端口映射
+    # Alternative network configuration: if not using host mode, use the following port mappings
+    # ports:
+    #   - "8096:8096"   # Web 介面端口 / Web interface port
+    #   - "8920:8920"   # HTTPS 端口 / HTTPS port (可選 optional)
+    #   - "1900:1900/udp"  # DLNA 服務發現端口 / DLNA service discovery port
+    #   - "7359:7359/udp"  # 客戶端自動發現端口 / Client auto-discovery port
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # Jellyfin 設定檔案存放位置
+      # Jellyfin configuration files location
+      - ./jellyfin/config:/config
+      
+      # 快取目錄，用於存放縮圖和其他暫存資料
+      # Cache directory for thumbnails and other temporary data
+      - ./jellyfin/cache:/cache
+      
+      # 媒體庫目錄映射，這裡映射多個媒體類型目錄
+      # Media library directory mapping, mapping multiple media type directories
+      - /path/to/your/movies:/movies:ro      # 電影目錄 (唯讀) / Movies directory (read-only)
+      - /path/to/your/tv:/tv:ro              # 電視劇目錄 (唯讀) / TV series directory (read-only)
+      - /path/to/your/music:/music:ro        # 音樂目錄 (唯讀) / Music directory (read-only)
+      - /path/to/your/photos:/photos:ro      # 照片目錄 (唯讀) / Photos directory (read-only)
+      
+      # 額外的媒體目錄，可根據需要新增
+      # Additional media directories, can be added as needed
+      # - /path/to/your/audiobooks:/audiobooks:ro    # 有聲書目錄 / Audiobooks directory
+      # - /path/to/your/podcasts:/podcasts:ro        # 播客目錄 / Podcasts directory
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 使用者 ID 和群組 ID，確保檔案權限正確
+      # User ID and Group ID to ensure correct file permissions
+      - PUID=1000
+      - PGID=1000
+      
+      # 時區設定，請根據您的位置調整
+      # Timezone configuration, adjust according to your location
+      - TZ=Asia/Taipei
+      
+      # Jellyfin 快取目錄設定
+      # Jellyfin cache directory setting
+      - JELLYFIN_CACHE_DIR=/cache
+      
+      # 設定 Jellyfin 資料目錄
+      # Set Jellyfin data directory
+      - JELLYFIN_DATA_DIR=/config
+      
+      # 設定 Jellyfin 記錄目錄
+      # Set Jellyfin log directory
+      - JELLYFIN_LOG_DIR=/config/logs
+      
+      # 設定 Jellyfin 設定目錄
+      # Set Jellyfin configuration directory
+      - JELLYFIN_CONFIG_DIR=/config
+    
+    # 重啟策略：容器異常終止時自動重啟
+    # Restart policy: automatically restart when container terminates unexpectedly
+    restart: unless-stopped
+    
+    # 硬體加速設定 (可選)
+    # Hardware acceleration settings (optional)
+    # 如果您的系統支援硬體加速，可以取消註解以下設定
+    # If your system supports hardware acceleration, uncomment the following settings
+    # devices:
+    #   - /dev/dri:/dev/dri  # Intel GPU 硬體加速 / Intel GPU hardware acceleration
+    # 
+    # 對於 NVIDIA GPU，需要額外的設定
+    # For NVIDIA GPU, additional configuration is needed
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    #   - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    
+    # 記憶體和 CPU 限制 (可選)
+    # Memory and CPU limits (optional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4G        # 記憶體限制 / Memory limit
+    #     reservations:
+    #       memory: 1G        # 記憶體保留 / Memory reservation
+    
+    # 依賴服務 (如果需要)
+    # Depends on services (if needed)
+    # depends_on:
+    #   - database_service_name
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Jellyfin Web 介面是否可用
+      # Check if Jellyfin web interface is available
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s      # 檢查間隔 / Check interval
+      timeout: 10s       # 超時時間 / Timeout
+      retries: 3         # 重試次數 / Retry count
+      start_period: 40s  # 啟動緩衝時間 / Startup grace period
+
+# 網路設定 (如果不使用 host 模式)
+# Network configuration (if not using host mode)
+# networks:
+#   jellyfin_network:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.20.0.0/16
+
+# 卷定義 (使用命名卷時)
+# Volume definitions (when using named volumes)
+# volumes:
+#   jellyfin_config:
+#     driver: local
+#   jellyfin_cache:
+#     driver: local
