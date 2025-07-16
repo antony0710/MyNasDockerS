@@ -1,7 +1,79 @@
 # MyNasDockerS
 Try To store the Yaml of my docker in NAS
 
-## 🚀 一鍵安裝 / One-Click Installation
+## 🏗️ 新的資料夾結構 / New Folder Structure
+
+MyNasDockerS 現在採用模組化結構，每個服務都有自己的資料夾：
+MyNasDockerS now uses a modular structure with each service having its own folder:
+
+```
+MyNasDockerS/
+├── docker-compose.yml          # 統一管理檔案 / Unified management file
+├── install-all.sh              # 一鍵安裝腳本 / One-click installation script
+├── ariang/                     # AriaNg + Aria2 下載管理器
+│   ├── docker-compose.yml
+│   └── README.md
+├── homeassistant/              # Home Assistant 智能家居
+│   ├── docker-compose.yml
+│   └── README.md
+├── immich/                     # Immich 照片管理
+│   ├── docker-compose.yml
+│   └── README.md
+├── jellyfin/                   # Jellyfin 媒體伺服器
+│   ├── docker-compose.yml
+│   └── README.md
+├── navidrome/                  # Navidrome 音樂伺服器
+│   ├── docker-compose.yml
+│   └── README.md
+├── webtube/                    # WebTube 影片下載器
+│   ├── docker-compose.yml
+│   └── README.md
+└── zigbee2mqtt/                # Zigbee2MQTT 橋接器
+    ├── docker-compose.yml
+    └── README.md
+```
+
+## 🚀 使用方法 / Usage
+
+### 統一管理模式 / Unified Management Mode
+
+使用根目錄的 `docker-compose.yml` 統一管理所有服務：
+Use the root `docker-compose.yml` to manage all services:
+
+```bash
+# 啟動所有服務 / Start all services
+docker-compose up -d
+
+# 啟動特定服務 / Start specific service
+docker-compose up -d jellyfin
+
+# 停止所有服務 / Stop all services
+docker-compose down
+
+# 查看服務狀態 / View service status
+docker-compose ps
+
+# 查看服務日誌 / View service logs
+docker-compose logs -f jellyfin
+```
+
+### 個別服務管理 / Individual Service Management
+
+進入特定服務資料夾進行管理：
+Enter specific service folder for management:
+
+```bash
+# 進入 Jellyfin 資料夾 / Enter Jellyfin folder
+cd jellyfin
+
+# 啟動 Jellyfin / Start Jellyfin
+docker-compose up -d
+
+# 停止 Jellyfin / Stop Jellyfin
+docker-compose down
+```
+
+### 一鍵安裝腳本 / One-Click Installation Script
 
 使用我們的一鍵安裝腳本快速部署所有服務：
 Use our one-click installation script to quickly deploy all services:
@@ -11,12 +83,19 @@ chmod +x install-all.sh
 ./install-all.sh
 ```
 
+腳本提供以下功能：
+The script provides the following features:
+- 個別服務安裝 / Individual service installation
+- 統一管理模式 / Unified management mode
+- 服務狀態監控 / Service status monitoring
+- 一鍵更新所有服務 / One-click update all services
+
 ## 📋 可用的 Docker Compose 設定檔 / Available Docker Compose Configurations
 
 ### 1. 📺 Jellyfin 媒體伺服器 / Jellyfin Media Server
-- **檔案**: `jellyfin-docker-compose.yml`
+- **檔案**: `jellyfin/docker-compose.yml`
 - **說明**: 完整的 Jellyfin 媒體伺服器 Docker Compose 設定
-- **詳細文件**: 請參考 `jellyfin-README.md`
+- **詳細文件**: 請參考 `jellyfin/README.md`
 - **存取地址**: http://localhost:8096
 - **特色功能**:
   - 支援硬體加速 (Intel/NVIDIA GPU)
@@ -26,9 +105,9 @@ chmod +x install-all.sh
   - 記憶體和 CPU 限制選項
 
 ### 2. ⬇️ AriaNg + Aria2 下載管理器 / AriaNg + Aria2 Download Manager
-- **檔案**: `ariang-docker-compose.yml`
+- **檔案**: `ariang/docker-compose.yml`
 - **說明**: 高效能的多協議下載管理器，支援 HTTP/HTTPS、FTP、BitTorrent
-- **詳細文件**: 請參考 `ariang-README.md`
+- **詳細文件**: 請參考 `ariang/README.md`
 - **存取地址**: http://localhost:6880
 - **特色功能**:
   - 支援多種下載協議
@@ -38,9 +117,9 @@ chmod +x install-all.sh
   - 完整的中文註解說明
 
 ### 3. 🎬 WebTube 影片下載器 / WebTube Video Downloader
-- **檔案**: `webtube-docker-compose.yml`
+- **檔案**: `webtube/docker-compose.yml`
 - **說明**: 基於 yt-dlp 的影片下載器，支援 1000+ 網站
-- **詳細文件**: 請參考 `webtube-README.md`
+- **詳細文件**: 請參考 `webtube/README.md`
 - **存取地址**: http://localhost:8081
 - **特色功能**:
   - 支援 YouTube、Bilibili、TikTok 等主流平台
@@ -50,9 +129,9 @@ chmod +x install-all.sh
   - Redis 快取提升效能
 
 ### 4. 🎵 Navidrome 音樂伺服器 / Navidrome Music Server
-- **檔案**: `navidrome-docker-compose.yml`
+- **檔案**: `navidrome/docker-compose.yml`
 - **說明**: 現代化的音樂串流伺服器，支援 Subsonic API
-- **詳細文件**: 請參考 `navidrome-README.md`
+- **詳細文件**: 請參考 `navidrome/README.md`
 - **存取地址**: http://localhost:4533
 - **特色功能**:
   - 支援多種音樂格式
@@ -62,9 +141,9 @@ chmod +x install-all.sh
   - 多使用者和權限管理
 
 ### 5. 🏠 Home Assistant 智能家居 / Home Assistant Smart Home
-- **檔案**: `homeassistant-docker-compose.yml`
+- **檔案**: `homeassistant/docker-compose.yml`
 - **說明**: 完整的智能家居管理平台，支援 1000+ 設備整合
-- **詳細文件**: 請參考 `homeassistant-README.md`
+- **詳細文件**: 請參考 `homeassistant/README.md`
 - **存取地址**: 
   - Home Assistant: http://localhost:8123
   - InfluxDB: http://localhost:8086
@@ -77,9 +156,9 @@ chmod +x install-all.sh
   - Grafana 視覺化監控
 
 ### 6. 🔄 Zigbee2MQTT 橋接器 / Zigbee2MQTT Bridge
-- **檔案**: `zigbee2mqtt-docker-compose.yml`
+- **檔案**: `zigbee2mqtt/docker-compose.yml`
 - **說明**: Zigbee 到 MQTT 橋接器，支援 1000+ Zigbee 設備
-- **詳細文件**: 請參考 `zigbee2mqtt-README.md`
+- **詳細文件**: 請參考 `zigbee2mqtt/README.md`
 - **存取地址**: 
   - Zigbee2MQTT: http://localhost:8080
   - Node-RED: http://localhost:1880
@@ -90,9 +169,38 @@ chmod +x install-all.sh
   - Node-RED 自動化平台
   - 完整的設備管理
 
+### 7. 📷 Immich 照片管理 / Immich Photo Management
+- **檔案**: `immich/docker-compose.yml`
+- **說明**: 高效能的照片和影片管理平台，支援 AI 功能
+- **詳細文件**: 請參考 `immich/README.md`
+- **存取地址**: http://localhost:2283
+- **特色功能**:
+  - 自動備份和同步
+  - AI 驅動的照片分類
+  - 人臉識別和搜尋
+  - 地理位置標記
+  - 分享和相簿功能
+
 ## 📖 使用方法 / Usage Instructions
 
-### 方法一：一鍵安裝 (推薦) / Method 1: One-Click Installation (Recommended)
+### 方法一：統一管理模式 (推薦) / Method 1: Unified Management Mode (Recommended)
+
+```bash
+# 1. 啟動所有服務 / Start all services
+docker-compose up -d
+
+# 2. 啟動特定服務 / Start specific service
+docker-compose up -d jellyfin
+
+# 3. 查看服務狀態 / Check service status
+docker-compose ps
+
+# 4. 停止所有服務 / Stop all services
+docker-compose down
+```
+
+### 方法二：一鍵安裝腳本 / Method 2: One-Click Installation Script
+
 ```bash
 # 1. 執行安裝腳本 / Run installation script
 ./install-all.sh
@@ -101,22 +209,57 @@ chmod +x install-all.sh
 # 3. 腳本會自動建立目錄和設定檔 / Script will automatically create directories and config files
 ```
 
-### 方法二：手動安裝 / Method 2: Manual Installation
+### 方法三：個別服務管理 / Method 3: Individual Service Management
+
 ```bash
-# 1. 選擇所需的服務設定檔 / Select required service configuration file
+# 1. 進入服務資料夾 / Enter service folder
+cd jellyfin
+
 # 2. 根據您的環境修改設定 / Modify configuration according to your environment
 # 3. 啟動服務 / Start service
-docker-compose -f service-name-docker-compose.yml up -d
+docker-compose up -d
 ```
 
 ## 🛠️ 服務管理 / Service Management
 
-### 查看服務狀態 / Check Service Status
+### 統一管理方式 / Unified Management
+
 ```bash
 # 查看所有服務狀態 / Check all services status
-docker-compose -f jellyfin-docker-compose.yml ps
-docker-compose -f ariang-docker-compose.yml ps
-# ... 其他服務 / other services
+docker-compose ps
+
+# 查看特定服務狀態 / Check specific service status
+docker-compose ps jellyfin
+
+# 查看服務日誌 / View service logs
+docker-compose logs -f jellyfin
+
+# 重啟特定服務 / Restart specific service
+docker-compose restart jellyfin
+
+# 更新所有服務 / Update all services
+docker-compose pull
+docker-compose up -d
+```
+
+### 個別服務管理 / Individual Service Management
+
+```bash
+# 進入服務資料夾 / Enter service folder
+cd jellyfin
+
+# 查看服務狀態 / Check service status
+docker-compose ps
+
+# 查看服務日誌 / View service logs
+docker-compose logs -f
+
+# 重啟服務 / Restart service
+docker-compose restart
+
+# 更新服務 / Update service
+docker-compose pull
+docker-compose up -d
 ```
 
 ### 停止服務 / Stop Services
