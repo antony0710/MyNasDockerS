@@ -98,6 +98,12 @@ create_directories() {
         "zigbee2mqtt/mosquitto/data"
         "zigbee2mqtt/mosquitto/log"
         "zigbee2mqtt/nodered"
+        "immich/upload"
+        "immich/config"
+        "immich/postgres"
+        "immich/redis"
+        "immich/model-cache"
+        "immich/shared"
     )
     
     # 建立所有目錄 / Create all directories
@@ -152,9 +158,10 @@ show_menu() {
     echo "4. Navidrome (音樂伺服器 / Music Server)"
     echo "5. Home Assistant (智能家居 / Smart Home)"
     echo "6. Zigbee2MQTT (Zigbee 橋接器 / Zigbee Bridge)"
-    echo "7. 安裝所有服務 / Install All Services"
-    echo "8. 自訂安裝 / Custom Installation"
-    echo "9. 退出 / Exit"
+    echo "7. Immich (照片管理 / Photo Management)"
+    echo "8. 安裝所有服務 / Install All Services"
+    echo "9. 自訂安裝 / Custom Installation"
+    echo "10. 退出 / Exit"
     echo ""
 }
 
@@ -253,6 +260,22 @@ deploy_zigbee2mqtt() {
     fi
 }
 
+deploy_immich() {
+    print_info "部署 Immich 照片管理 / Deploying Immich Photo Management"
+    
+    # 提示用戶修改密碼和密鑰 / Prompt user to modify passwords and secrets
+    print_warning "請在啟動前修改 immich-docker-compose.yml 中的密碼和 JWT 密鑰"
+    print_warning "Please modify passwords and JWT secret in immich-docker-compose.yml before starting"
+    
+    read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
+    if [[ $confirm == [yY] ]]; then
+        docker-compose -f immich-docker-compose.yml up -d
+        print_success "Immich 部署完成 / Immich deployment completed"
+        print_info "存取地址 / Access URL: http://localhost:2283"
+        print_info "首次存取時需要建立管理員帳戶 / First access requires creating admin account"
+    fi
+}
+
 # 部署所有服務 / Deploy all services
 deploy_all() {
     print_info "開始部署所有服務 / Starting deployment of all services"
@@ -270,6 +293,8 @@ deploy_all() {
         deploy_homeassistant
         sleep 2
         deploy_zigbee2mqtt
+        sleep 2
+        deploy_immich
         
         print_success "所有服務部署完成 / All services deployment completed"
         show_access_info
@@ -283,7 +308,7 @@ custom_install() {
     local services=()
     
     echo "請選擇要安裝的服務 (用空格分隔多個選項) / Please select services to install (separate multiple options with spaces):"
-    echo "1=Jellyfin 2=AriaNg 3=WebTube 4=Navidrome 5=Home Assistant 6=Zigbee2MQTT"
+    echo "1=Jellyfin 2=AriaNg 3=WebTube 4=Navidrome 5=Home Assistant 6=Zigbee2MQTT 7=Immich"
     read -p "輸入選項 / Enter options: " selections
     
     for selection in $selections; do
@@ -294,6 +319,7 @@ custom_install() {
             4) services+=("navidrome");;
             5) services+=("homeassistant");;
             6) services+=("zigbee2mqtt");;
+            7) services+=("immich");;
         esac
     done
     
@@ -309,6 +335,7 @@ custom_install() {
                 "navidrome") deploy_navidrome;;
                 "homeassistant") deploy_homeassistant;;
                 "zigbee2mqtt") deploy_zigbee2mqtt;;
+                "immich") deploy_immich;;
             esac
             sleep 2
         done
@@ -333,6 +360,7 @@ show_access_info() {
     echo "📈 Grafana (監控面板): http://localhost:3000"
     echo "🔄 Zigbee2MQTT (Zigbee 橋接器): http://localhost:8080"
     echo "🔧 Node-RED (自動化平台): http://localhost:1880"
+    echo "📷 Immich (照片管理): http://localhost:2283"
     echo ""
     echo "請確保防火牆允許這些端口的存取 / Please ensure firewall allows access to these ports"
 }
@@ -370,6 +398,7 @@ show_service_status() {
         "navidrome-docker-compose.yml"
         "homeassistant-docker-compose.yml"
         "zigbee2mqtt-docker-compose.yml"
+        "immich-docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -391,6 +420,7 @@ stop_all_services() {
         "navidrome-docker-compose.yml"
         "homeassistant-docker-compose.yml"
         "zigbee2mqtt-docker-compose.yml"
+        "immich-docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -416,6 +446,7 @@ restart_all_services() {
         "navidrome-docker-compose.yml"
         "homeassistant-docker-compose.yml"
         "zigbee2mqtt-docker-compose.yml"
+        "immich-docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -438,6 +469,7 @@ update_all_services() {
         "navidrome-docker-compose.yml"
         "homeassistant-docker-compose.yml"
         "zigbee2mqtt-docker-compose.yml"
+        "immich-docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -485,9 +517,10 @@ main() {
             4) deploy_navidrome;;
             5) deploy_homeassistant;;
             6) deploy_zigbee2mqtt;;
-            7) deploy_all;;
-            8) custom_install;;
-            9) 
+            7) deploy_immich;;
+            8) deploy_all;;
+            9) custom_install;;
+            10) 
                 print_info "感謝使用 MyNasDockerS / Thank you for using MyNasDockerS"
                 exit 0
                 ;;

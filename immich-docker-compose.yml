@@ -1,0 +1,263 @@
+services:
+  immich-server:
+    # 使用官方 Immich 伺服器映像檔，提供照片管理和 AI 功能
+    # Uses official Immich server image, provides photo management and AI features
+    image: ghcr.io/immich-app/immich-server:release
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: immich-server
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 環境變數設定
+    # Environment variables configuration
+    environment:
+      # 資料庫連接設定
+      # Database connection configuration
+      - DB_HOSTNAME=immich-postgres
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE_NAME=immich
+      
+      # Redis 快取設定
+      # Redis cache configuration
+      - REDIS_HOSTNAME=immich-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      
+      # 機器學習服務設定
+      # Machine learning service configuration
+      - IMMICH_MACHINE_LEARNING_URL=http://immich-machine-learning:3003
+      
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 上傳檔案大小限制
+      # Upload file size limit
+      - UPLOAD_LOCATION=/usr/src/app/upload
+      
+      # JWT 密鑰設定
+      # JWT secret configuration
+      - JWT_SECRET=your-jwt-secret-key-here
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # 照片和影片儲存位置
+      # Photos and videos storage location
+      - ./immich/upload:/usr/src/app/upload
+      
+      # 設定檔儲存位置
+      # Configuration files storage location
+      - ./immich/config:/usr/src/app/config
+      
+      # 本地時間同步
+      # Local time synchronization
+      - /etc/localtime:/etc/localtime:ro
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Immich Web UI 存取端口
+      # Immich Web UI access port
+      - "2283:3001"
+    
+    # 依賴關係，確保資料庫和 Redis 服務先啟動
+    # Dependencies, ensure database and Redis services start first
+    depends_on:
+      - immich-postgres
+      - immich-redis
+      - immich-machine-learning
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Immich 伺服器是否正常運行
+      # Check if Immich server is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/api/server-info/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - immich-network
+
+  immich-machine-learning:
+    # 使用官方 Immich 機器學習服務映像檔
+    # Uses official Immich machine learning service image
+    image: ghcr.io/immich-app/immich-machine-learning:release
+    
+    # 容器名稱
+    # Container name
+    container_name: immich-machine-learning
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變數設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 機器學習快取設定
+      # Machine learning cache configuration
+      - TRANSFORMERS_CACHE=/cache
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # 機器學習模型快取位置
+      # Machine learning model cache location
+      - ./immich/model-cache:/cache
+      
+      # 本地時間同步
+      # Local time synchronization
+      - /etc/localtime:/etc/localtime:ro
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查機器學習服務是否正常運行
+      # Check if machine learning service is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:3003/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - immich-network
+
+  immich-redis:
+    # 使用官方 Redis 映像檔作為快取服務
+    # Uses official Redis image as cache service
+    image: redis:7-alpine
+    
+    # 容器名稱
+    # Container name
+    container_name: immich-redis
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變數設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # Redis 資料儲存位置
+      # Redis data storage location
+      - ./immich/redis:/data
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Redis 是否正常運行
+      # Check if Redis is running properly
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - immich-network
+
+  immich-postgres:
+    # 使用官方 PostgreSQL 映像檔作為資料庫服務
+    # Uses official PostgreSQL image as database service
+    image: postgres:15-alpine
+    
+    # 容器名稱
+    # Container name
+    container_name: immich-postgres
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變數設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # PostgreSQL 資料庫設定
+      # PostgreSQL database configuration
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=immich
+      
+      # 資料庫初始化腳本
+      # Database initialization script
+      - POSTGRES_INITDB_ARGS='--data-checksums'
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # PostgreSQL 資料儲存位置
+      # PostgreSQL data storage location
+      - ./immich/postgres:/var/lib/postgresql/data
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 PostgreSQL 是否正常運行
+      # Check if PostgreSQL is running properly
+      test: ["CMD-SHELL", "pg_isready -U postgres -d immich"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - immich-network
+
+# 網路設定
+# Network configuration
+networks:
+  immich-network:
+    # 建立自定義橋接網路
+    # Create custom bridge network
+    driver: bridge
+    
+    # 網路設定
+    # Network configuration
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+# 額外的 volumes 設定 (可選)
+# Additional volumes configuration (optional)
+volumes:
+  # 共享資料 volume
+  # Shared data volume
+  immich-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./immich/shared
