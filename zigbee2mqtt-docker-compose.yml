@@ -1,0 +1,283 @@
+services:
+  zigbee2mqtt:
+    # 使用官方 Zigbee2MQTT Docker 映像檔，提供 Zigbee 到 MQTT 的橋接服務
+    # Uses official Zigbee2MQTT Docker image, provides Zigbee to MQTT bridge service
+    image: koenkk/zigbee2mqtt:latest
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: zigbee2mqtt
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID，確保檔案權限正確
+      # User ID and Group ID to ensure correct file permissions
+      - PUID=1000
+      - PGID=1000
+      
+      # 啟用 Web UI
+      # Enable Web UI
+      - ZIGBEE2MQTT_CONFIG_FRONTEND_PORT=8080
+      - ZIGBEE2MQTT_CONFIG_FRONTEND_HOST=0.0.0.0
+      
+      # MQTT 伺服器設定
+      # MQTT server configuration
+      - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mqtt-broker:1883
+      
+      # 序列埠設定
+      # Serial port configuration
+      - ZIGBEE2MQTT_CONFIG_SERIAL_PORT=/dev/ttyUSB0
+      
+      # 啟用日誌記錄
+      # Enable logging
+      - ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_LEVEL=info
+      
+      # 啟用地圖功能
+      # Enable map functionality
+      - ZIGBEE2MQTT_CONFIG_MAP_OPTIONS_GRAPHVIZ_COLORS_FILL_ENDPOINT=0x00ff00
+      - ZIGBEE2MQTT_CONFIG_MAP_OPTIONS_GRAPHVIZ_COLORS_FILL_COORDINATOR=0x00ff00
+      
+      # 啟用實驗性功能
+      # Enable experimental features
+      - ZIGBEE2MQTT_CONFIG_EXPERIMENTAL_NEW_API=true
+      
+      # 啟用設備可用性檢查
+      # Enable device availability check
+      - ZIGBEE2MQTT_CONFIG_AVAILABILITY=true
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # Zigbee2MQTT 設定檔和資料存放位置
+      # Zigbee2MQTT configuration and data storage location
+      - ./zigbee2mqtt/data:/app/data
+      
+      # 本地時間同步
+      # Local time synchronization
+      - /etc/localtime:/etc/localtime:ro
+      
+      # 主機執行時間資訊
+      # Host run time information
+      - /run/udev:/run/udev:ro
+    
+    # 設備映射，允許存取 Zigbee 適配器
+    # Device mapping, allows access to Zigbee adapter
+    devices:
+      # Zigbee USB 適配器 (根據實際設備調整)
+      # Zigbee USB adapter (adjust according to actual device)
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      
+      # 常見的 Zigbee 適配器設備路徑
+      # Common Zigbee adapter device paths
+      # - /dev/ttyUSB1:/dev/ttyUSB1
+      # - /dev/ttyACM0:/dev/ttyACM0
+      # - /dev/serial/by-id/usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_xxx:/dev/ttyUSB0
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Zigbee2MQTT Web UI 存取端口
+      # Zigbee2MQTT Web UI access port
+      - "8080:8080"
+    
+    # 依賴關係，確保 MQTT 服務先啟動
+    # Dependencies, ensure MQTT service starts first
+    depends_on:
+      - mqtt-broker
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Zigbee2MQTT 是否正常運行
+      # Check if Zigbee2MQTT is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 資源限制設定 (可選)
+    # Resource limits configuration (optional)
+    deploy:
+      resources:
+        limits:
+          # CPU 使用限制
+          # CPU usage limit
+          cpus: '1.0'
+          # 記憶體使用限制
+          # Memory usage limit
+          memory: 512M
+        reservations:
+          # 保留的 CPU 資源
+          # Reserved CPU resources
+          cpus: '0.25'
+          # 保留的記憶體資源
+          # Reserved memory resources
+          memory: 256M
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - zigbee2mqtt-network
+
+  # MQTT Broker 服務，用於 Zigbee 設備通訊
+  # MQTT Broker service for Zigbee device communication
+  mqtt-broker:
+    # 使用官方 Mosquitto Docker 映像檔
+    # Uses official Mosquitto Docker image
+    image: eclipse-mosquitto:latest
+    
+    # 容器名稱
+    # Container name
+    container_name: zigbee2mqtt-mosquitto
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # Mosquitto 設定檔案
+      # Mosquitto configuration files
+      - ./zigbee2mqtt/mosquitto/config:/mosquitto/config
+      
+      # Mosquitto 資料存放位置
+      # Mosquitto data storage location
+      - ./zigbee2mqtt/mosquitto/data:/mosquitto/data
+      
+      # Mosquitto 日誌存放位置
+      # Mosquitto log storage location
+      - ./zigbee2mqtt/mosquitto/log:/mosquitto/log
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # MQTT 服務端口
+      # MQTT service port
+      - "1883:1883"
+      
+      # MQTT over WebSocket 端口
+      # MQTT over WebSocket port
+      - "9001:9001"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Mosquitto 是否正常運行
+      # Check if Mosquitto is running properly
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t 'test' -m 'health_check' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - zigbee2mqtt-network
+
+  # 可選：Node-RED 自動化服務
+  # Optional: Node-RED automation service
+  node-red:
+    # 使用官方 Node-RED Docker 映像檔
+    # Uses official Node-RED Docker image
+    image: nodered/node-red:latest
+    
+    # 容器名稱
+    # Container name
+    container_name: zigbee2mqtt-nodered
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID
+      # User ID and Group ID
+      - PUID=1000
+      - PGID=1000
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # Node-RED 使用者目錄
+      # Node-RED user directory
+      - ./zigbee2mqtt/nodered:/data
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Node-RED Web UI 存取端口
+      # Node-RED Web UI access port
+      - "1880:1880"
+    
+    # 依賴關係
+    # Dependencies
+    depends_on:
+      - mqtt-broker
+      - zigbee2mqtt
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Node-RED 是否正常運行
+      # Check if Node-RED is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:1880 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 網路設定
+    # Network configuration
+    networks:
+      - zigbee2mqtt-network
+
+# 網路設定
+# Network configuration
+networks:
+  zigbee2mqtt-network:
+    # 建立自定義橋接網路
+    # Create custom bridge network
+    driver: bridge
+    
+    # 網路設定
+    # Network configuration
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16
+
+# 額外的 volumes 設定 (可選)
+# Additional volumes configuration (optional)
+volumes:
+  # 共享資料 volume
+  # Shared data volume
+  zigbee2mqtt-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./zigbee2mqtt/shared

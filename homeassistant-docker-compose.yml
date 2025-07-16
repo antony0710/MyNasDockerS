@@ -1,0 +1,305 @@
+services:
+  homeassistant:
+    # 使用官方 Home Assistant Docker 映像檔，提供完整的智能家居管理平台
+    # Uses official Home Assistant Docker image, provides complete smart home management platform
+    image: ghcr.io/home-assistant/home-assistant:stable
+    
+    # 容器名稱，方便管理和識別
+    # Container name for easy management and identification
+    container_name: homeassistant
+    
+    # 容器重啟策略，除非手動停止，否則自動重啟
+    # Container restart policy, automatically restart unless manually stopped
+    restart: unless-stopped
+    
+    # 特權模式，允許存取主機硬體設備
+    # Privileged mode, allows access to host hardware devices
+    privileged: true
+    
+    # 使用主機網路模式，簡化網路設定並支援設備發現
+    # Uses host network mode to simplify network configuration and support device discovery
+    network_mode: host
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # 用戶 ID 和群組 ID (在特權模式下可選)
+      # User ID and Group ID (optional in privileged mode)
+      # - PUID=1000
+      # - PGID=1000
+    
+    # 卷映射設定，將本機路徑映射到容器內部
+    # Volume mapping configuration, maps host paths to container paths
+    volumes:
+      # Home Assistant 設定目錄
+      # Home Assistant configuration directory
+      - ./homeassistant/config:/config
+      
+      # 本地時間同步
+      # Local time synchronization
+      - /etc/localtime:/etc/localtime:ro
+      
+      # 主機執行時間資訊
+      # Host run time information
+      - /run/dbus:/run/dbus:ro
+      
+      # 設備存取 (USB 設備、Zigbee 適配器等)
+      # Device access (USB devices, Zigbee adapters, etc.)
+      - /dev:/dev
+      
+      # 媒體檔案存取 (可選)
+      # Media files access (optional)
+      - /path/to/your/media:/media
+    
+    # 設備映射，允許存取特定硬體設備
+    # Device mapping, allows access to specific hardware devices
+    devices:
+      # Zigbee/Z-Wave USB 適配器 (根據實際設備調整)
+      # Zigbee/Z-Wave USB adapters (adjust according to actual devices)
+      # - /dev/ttyUSB0:/dev/ttyUSB0
+      # - /dev/ttyUSB1:/dev/ttyUSB1
+      # - /dev/ttyACM0:/dev/ttyACM0
+      
+      # 其他 USB 設備
+      # Other USB devices
+      # - /dev/video0:/dev/video0  # 攝影機 / Camera
+      # - /dev/snd:/dev/snd        # 音訊設備 / Audio devices
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Home Assistant 是否正常運行
+      # Check if Home Assistant is running properly
+      test: ["CMD", "curl", "-f", "http://localhost:8123/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    
+    # 資源限制設定 (可選)
+    # Resource limits configuration (optional)
+    deploy:
+      resources:
+        limits:
+          # CPU 使用限制
+          # CPU usage limit
+          cpus: '2.0'
+          # 記憶體使用限制
+          # Memory usage limit
+          memory: 2G
+        reservations:
+          # 保留的 CPU 資源
+          # Reserved CPU resources
+          cpus: '0.5'
+          # 保留的記憶體資源
+          # Reserved memory resources
+          memory: 512M
+    
+    # 標籤設定，用於 Docker 管理
+    # Labels for Docker management
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.local`)"
+      - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
+
+  # 可選：InfluxDB 資料庫服務，用於長期資料儲存
+  # Optional: InfluxDB database service for long-term data storage
+  influxdb:
+    # 使用 InfluxDB 2.x 版本
+    # Uses InfluxDB 2.x version
+    image: influxdb:2.7-alpine
+    
+    # 容器名稱
+    # Container name
+    container_name: homeassistant-influxdb
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # InfluxDB 初始設定
+      # InfluxDB initial configuration
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=your_secure_password_here
+      - DOCKER_INFLUXDB_INIT_ORG=homeassistant
+      - DOCKER_INFLUXDB_INIT_BUCKET=homeassistant
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=your_admin_token_here
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # InfluxDB 資料存放位置
+      # InfluxDB data storage location
+      - ./homeassistant/influxdb/data:/var/lib/influxdb2
+      
+      # InfluxDB 設定檔案
+      # InfluxDB configuration files
+      - ./homeassistant/influxdb/config:/etc/influxdb2
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # InfluxDB Web UI 存取端口
+      # InfluxDB Web UI access port
+      - "8086:8086"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 InfluxDB 是否正常運行
+      # Check if InfluxDB is running properly
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 可選：Grafana 視覺化服務，用於資料分析和監控
+  # Optional: Grafana visualization service for data analysis and monitoring
+  grafana:
+    # 使用官方 Grafana Docker 映像檔
+    # Uses official Grafana Docker image
+    image: grafana/grafana:latest
+    
+    # 容器名稱
+    # Container name
+    container_name: homeassistant-grafana
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+      
+      # Grafana 安全設定
+      # Grafana security configuration
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=your_secure_password_here
+      
+      # 安裝插件
+      # Install plugins
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-worldmap-panel,grafana-piechart-panel
+      
+      # 允許嵌入
+      # Allow embedding
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # Grafana 資料存放位置
+      # Grafana data storage location
+      - ./homeassistant/grafana/data:/var/lib/grafana
+      
+      # Grafana 設定檔案
+      # Grafana configuration files
+      - ./homeassistant/grafana/config:/etc/grafana
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # Grafana Web UI 存取端口
+      # Grafana Web UI access port
+      - "3000:3000"
+    
+    # 依賴關係
+    # Dependencies
+    depends_on:
+      - influxdb
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Grafana 是否正常運行
+      # Check if Grafana is running properly
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 可選：Mosquitto MQTT Broker，用於 IoT 設備通訊
+  # Optional: Mosquitto MQTT Broker for IoT device communication
+  mosquitto:
+    # 使用官方 Mosquitto Docker 映像檔
+    # Uses official Mosquitto Docker image
+    image: eclipse-mosquitto:latest
+    
+    # 容器名稱
+    # Container name
+    container_name: homeassistant-mosquitto
+    
+    # 容器重啟策略
+    # Container restart policy
+    restart: unless-stopped
+    
+    # 環境變量設定
+    # Environment variables configuration
+    environment:
+      # 設定時區
+      # Set timezone
+      - TZ=Asia/Taipei
+    
+    # 卷映射設定
+    # Volume mapping configuration
+    volumes:
+      # Mosquitto 設定檔案
+      # Mosquitto configuration files
+      - ./homeassistant/mosquitto/config:/mosquitto/config
+      
+      # Mosquitto 資料存放位置
+      # Mosquitto data storage location
+      - ./homeassistant/mosquitto/data:/mosquitto/data
+      
+      # Mosquitto 日誌存放位置
+      # Mosquitto log storage location
+      - ./homeassistant/mosquitto/log:/mosquitto/log
+    
+    # 端口映射設定
+    # Port mapping configuration
+    ports:
+      # MQTT 服務端口
+      # MQTT service port
+      - "1883:1883"
+      
+      # MQTT over WebSocket 端口
+      # MQTT over WebSocket port
+      - "9001:9001"
+    
+    # 健康檢查設定
+    # Health check configuration
+    healthcheck:
+      # 檢查 Mosquitto 是否正常運行
+      # Check if Mosquitto is running properly
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t 'test' -m 'health_check' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# 網路設定 (如果不使用 host 模式)
+# Network configuration (if not using host mode)
+# networks:
+#   homeassistant:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.23.0.0/16
