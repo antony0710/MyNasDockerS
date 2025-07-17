@@ -98,6 +98,12 @@ create_directories() {
         "zigbee2mqtt/mosquitto/data"
         "zigbee2mqtt/mosquitto/log"
         "zigbee2mqtt/nodered"
+        "immich/upload"
+        "immich/config"
+        "immich/postgres"
+        "immich/redis"
+        "immich/model-cache"
+        "immich/shared"
     )
     
     # 建立所有目錄 / Create all directories
@@ -152,9 +158,12 @@ show_menu() {
     echo "4. Navidrome (音樂伺服器 / Music Server)"
     echo "5. Home Assistant (智能家居 / Smart Home)"
     echo "6. Zigbee2MQTT (Zigbee 橋接器 / Zigbee Bridge)"
-    echo "7. 安裝所有服務 / Install All Services"
-    echo "8. 自訂安裝 / Custom Installation"
-    echo "9. 退出 / Exit"
+    echo "7. Immich (照片管理 / Photo Management)"
+    echo "8. 安裝所有服務 / Install All Services"
+    echo "9. 自訂安裝 / Custom Installation"
+    echo "10. 統一管理模式 / Unified Management Mode"
+    echo "11. 服務管理 / Service Management"
+    echo "12. 退出 / Exit"
     echo ""
 }
 
@@ -163,12 +172,12 @@ deploy_jellyfin() {
     print_info "部署 Jellyfin 媒體伺服器 / Deploying Jellyfin Media Server"
     
     # 提示用戶修改媒體路徑 / Prompt user to modify media paths
-    print_warning "請在啟動前修改 jellyfin-docker-compose.yml 中的媒體路徑"
-    print_warning "Please modify media paths in jellyfin-docker-compose.yml before starting"
+    print_warning "請在啟動前修改 jellyfin/docker-compose.yml 中的媒體路徑"
+    print_warning "Please modify media paths in jellyfin/docker-compose.yml before starting"
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f jellyfin-docker-compose.yml up -d
+        docker-compose -f jellyfin/docker-compose.yml up -d
         print_success "Jellyfin 部署完成 / Jellyfin deployment completed"
         print_info "存取地址 / Access URL: http://localhost:8096"
     fi
@@ -178,12 +187,12 @@ deploy_ariang() {
     print_info "部署 AriaNg + Aria2 下載管理器 / Deploying AriaNg + Aria2 Download Manager"
     
     # 提示用戶修改 RPC 密鑰 / Prompt user to modify RPC secret
-    print_warning "請在啟動前修改 ariang-docker-compose.yml 中的 RPC_SECRET"
-    print_warning "Please modify RPC_SECRET in ariang-docker-compose.yml before starting"
+    print_warning "請在啟動前修改 ariang/docker-compose.yml 中的 RPC_SECRET"
+    print_warning "Please modify RPC_SECRET in ariang/docker-compose.yml before starting"
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f ariang-docker-compose.yml up -d
+        docker-compose -f ariang/docker-compose.yml up -d
         print_success "AriaNg + Aria2 部署完成 / AriaNg + Aria2 deployment completed"
         print_info "存取地址 / Access URL: http://localhost:6880"
     fi
@@ -194,7 +203,7 @@ deploy_webtube() {
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f webtube-docker-compose.yml up -d
+        docker-compose -f webtube/docker-compose.yml up -d
         print_success "WebTube 部署完成 / WebTube deployment completed"
         print_info "存取地址 / Access URL: http://localhost:8081"
     fi
@@ -204,12 +213,12 @@ deploy_navidrome() {
     print_info "部署 Navidrome 音樂伺服器 / Deploying Navidrome Music Server"
     
     # 提示用戶修改音樂路徑 / Prompt user to modify music path
-    print_warning "請在啟動前修改 navidrome-docker-compose.yml 中的音樂路徑"
-    print_warning "Please modify music path in navidrome-docker-compose.yml before starting"
+    print_warning "請在啟動前修改 navidrome/docker-compose.yml 中的音樂路徑"
+    print_warning "Please modify music path in navidrome/docker-compose.yml before starting"
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f navidrome-docker-compose.yml up -d
+        docker-compose -f navidrome/docker-compose.yml up -d
         print_success "Navidrome 部署完成 / Navidrome deployment completed"
         print_info "存取地址 / Access URL: http://localhost:4533"
     fi
@@ -219,12 +228,12 @@ deploy_homeassistant() {
     print_info "部署 Home Assistant 智能家居 / Deploying Home Assistant Smart Home"
     
     # 提示用戶修改密碼 / Prompt user to modify passwords
-    print_warning "請在啟動前修改 homeassistant-docker-compose.yml 中的密碼"
-    print_warning "Please modify passwords in homeassistant-docker-compose.yml before starting"
+    print_warning "請在啟動前修改 homeassistant/docker-compose.yml 中的密碼"
+    print_warning "Please modify passwords in homeassistant/docker-compose.yml before starting"
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f homeassistant-docker-compose.yml up -d
+        docker-compose -f homeassistant/docker-compose.yml up -d
         print_success "Home Assistant 部署完成 / Home Assistant deployment completed"
         print_info "存取地址 / Access URLs:"
         print_info "  - Home Assistant: http://localhost:8123"
@@ -240,16 +249,32 @@ deploy_zigbee2mqtt() {
     print_info "檢查 USB 設備 / Checking USB devices:"
     ls -la /dev/tty* | grep -E "(USB|ACM)"
     
-    print_warning "請確認 Zigbee 適配器已連接並修改 zigbee2mqtt-docker-compose.yml 中的設備路徑"
-    print_warning "Please ensure Zigbee adapter is connected and modify device path in zigbee2mqtt-docker-compose.yml"
+    print_warning "請確認 Zigbee 適配器已連接並修改 zigbee2mqtt/docker-compose.yml 中的設備路徑"
+    print_warning "Please ensure Zigbee adapter is connected and modify device path in zigbee2mqtt/docker-compose.yml"
     
     read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
     if [[ $confirm == [yY] ]]; then
-        docker-compose -f zigbee2mqtt-docker-compose.yml up -d
+        docker-compose -f zigbee2mqtt/docker-compose.yml up -d
         print_success "Zigbee2MQTT 部署完成 / Zigbee2MQTT deployment completed"
         print_info "存取地址 / Access URLs:"
         print_info "  - Zigbee2MQTT: http://localhost:8080"
         print_info "  - Node-RED: http://localhost:1880"
+    fi
+}
+
+deploy_immich() {
+    print_info "部署 Immich 照片管理 / Deploying Immich Photo Management"
+    
+    # 提示用戶修改密碼和密鑰 / Prompt user to modify passwords and secrets
+    print_warning "請在啟動前修改 immich/docker-compose.yml 中的密碼和 JWT 密鑰"
+    print_warning "Please modify passwords and JWT secret in immich/docker-compose.yml before starting"
+    
+    read -p "是否繼續部署？(y/n) / Continue deployment? (y/n): " confirm
+    if [[ $confirm == [yY] ]]; then
+        docker-compose -f immich/docker-compose.yml up -d
+        print_success "Immich 部署完成 / Immich deployment completed"
+        print_info "存取地址 / Access URL: http://localhost:2283"
+        print_info "首次存取時需要建立管理員帳戶 / First access requires creating admin account"
     fi
 }
 
@@ -270,6 +295,8 @@ deploy_all() {
         deploy_homeassistant
         sleep 2
         deploy_zigbee2mqtt
+        sleep 2
+        deploy_immich
         
         print_success "所有服務部署完成 / All services deployment completed"
         show_access_info
@@ -283,7 +310,7 @@ custom_install() {
     local services=()
     
     echo "請選擇要安裝的服務 (用空格分隔多個選項) / Please select services to install (separate multiple options with spaces):"
-    echo "1=Jellyfin 2=AriaNg 3=WebTube 4=Navidrome 5=Home Assistant 6=Zigbee2MQTT"
+    echo "1=Jellyfin 2=AriaNg 3=WebTube 4=Navidrome 5=Home Assistant 6=Zigbee2MQTT 7=Immich"
     read -p "輸入選項 / Enter options: " selections
     
     for selection in $selections; do
@@ -294,6 +321,7 @@ custom_install() {
             4) services+=("navidrome");;
             5) services+=("homeassistant");;
             6) services+=("zigbee2mqtt");;
+            7) services+=("immich");;
         esac
     done
     
@@ -309,6 +337,7 @@ custom_install() {
                 "navidrome") deploy_navidrome;;
                 "homeassistant") deploy_homeassistant;;
                 "zigbee2mqtt") deploy_zigbee2mqtt;;
+                "immich") deploy_immich;;
             esac
             sleep 2
         done
@@ -333,11 +362,88 @@ show_access_info() {
     echo "📈 Grafana (監控面板): http://localhost:3000"
     echo "🔄 Zigbee2MQTT (Zigbee 橋接器): http://localhost:8080"
     echo "🔧 Node-RED (自動化平台): http://localhost:1880"
+    echo "📷 Immich (照片管理): http://localhost:2283"
     echo ""
     echo "請確保防火牆允許這些端口的存取 / Please ensure firewall allows access to these ports"
 }
 
-# 服務管理函數 / Service management functions
+# 統一管理模式 / Unified management mode
+unified_management() {
+    print_header "統一管理模式 / Unified Management Mode"
+    
+    echo "使用統一 docker-compose.yml 進行管理 / Using unified docker-compose.yml for management"
+    echo ""
+    echo "1. 啟動所有服務 / Start all services"
+    echo "2. 停止所有服務 / Stop all services"
+    echo "3. 重啟所有服務 / Restart all services"
+    echo "4. 查看服務狀態 / View service status"
+    echo "5. 查看服務日誌 / View service logs"
+    echo "6. 更新所有服務 / Update all services"
+    echo "7. 啟動特定服務 / Start specific service"
+    echo "8. 停止特定服務 / Stop specific service"
+    echo "9. 返回主選單 / Return to main menu"
+    echo ""
+    
+    read -p "請選擇 / Please select: " choice
+    
+    case $choice in
+        1) 
+            print_info "啟動所有服務 / Starting all services"
+            docker-compose up -d
+            print_success "所有服務已啟動 / All services started"
+            ;;
+        2) 
+            print_info "停止所有服務 / Stopping all services"
+            docker-compose down
+            print_success "所有服務已停止 / All services stopped"
+            ;;
+        3) 
+            print_info "重啟所有服務 / Restarting all services"
+            docker-compose restart
+            print_success "所有服務已重啟 / All services restarted"
+            ;;
+        4) 
+            print_info "查看服務狀態 / Viewing service status"
+            docker-compose ps
+            ;;
+        5) 
+            print_info "查看服務日誌 / Viewing service logs"
+            echo "可用的服務 / Available services: jellyfin, ariang, webtube, navidrome, homeassistant, zigbee2mqtt, immich"
+            read -p "請輸入服務名稱 (留空查看所有) / Enter service name (empty for all): " service_name
+            if [[ -z "$service_name" ]]; then
+                docker-compose logs -f --tail=100
+            else
+                docker-compose logs -f --tail=100 "$service_name"
+            fi
+            ;;
+        6) 
+            print_info "更新所有服務 / Updating all services"
+            docker-compose pull
+            docker-compose up -d
+            print_success "所有服務已更新 / All services updated"
+            ;;
+        7) 
+            print_info "啟動特定服務 / Starting specific service"
+            echo "可用的服務 / Available services: jellyfin, ariang, webtube, navidrome, homeassistant, zigbee2mqtt, immich"
+            read -p "請輸入服務名稱 / Enter service name: " service_name
+            if [[ -n "$service_name" ]]; then
+                docker-compose up -d "$service_name"
+                print_success "服務 $service_name 已啟動 / Service $service_name started"
+            fi
+            ;;
+        8) 
+            print_info "停止特定服務 / Stopping specific service"
+            echo "可用的服務 / Available services: jellyfin, ariang, webtube, navidrome, homeassistant, zigbee2mqtt, immich"
+            read -p "請輸入服務名稱 / Enter service name: " service_name
+            if [[ -n "$service_name" ]]; then
+                docker-compose stop "$service_name"
+                print_success "服務 $service_name 已停止 / Service $service_name stopped"
+            fi
+            ;;
+        9) return;;
+        *) print_error "無效選項 / Invalid option";;
+    esac
+}
 manage_services() {
     print_header "服務管理 / Service Management"
     
@@ -364,12 +470,13 @@ show_service_status() {
     print_info "查看服務狀態 / Checking service status"
     
     local compose_files=(
-        "jellyfin-docker-compose.yml"
-        "ariang-docker-compose.yml"
-        "webtube-docker-compose.yml"
-        "navidrome-docker-compose.yml"
-        "homeassistant-docker-compose.yml"
-        "zigbee2mqtt-docker-compose.yml"
+        "jellyfin/docker-compose.yml"
+        "ariang/docker-compose.yml"
+        "webtube/docker-compose.yml"
+        "navidrome/docker-compose.yml"
+        "homeassistant/docker-compose.yml"
+        "zigbee2mqtt/docker-compose.yml"
+        "immich/docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -385,12 +492,13 @@ stop_all_services() {
     print_info "停止所有服務 / Stopping all services"
     
     local compose_files=(
-        "jellyfin-docker-compose.yml"
-        "ariang-docker-compose.yml"
-        "webtube-docker-compose.yml"
-        "navidrome-docker-compose.yml"
-        "homeassistant-docker-compose.yml"
-        "zigbee2mqtt-docker-compose.yml"
+        "jellyfin/docker-compose.yml"
+        "ariang/docker-compose.yml"
+        "webtube/docker-compose.yml"
+        "navidrome/docker-compose.yml"
+        "homeassistant/docker-compose.yml"
+        "zigbee2mqtt/docker-compose.yml"
+        "immich/docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -410,12 +518,13 @@ restart_all_services() {
     sleep 3
     
     local compose_files=(
-        "jellyfin-docker-compose.yml"
-        "ariang-docker-compose.yml"
-        "webtube-docker-compose.yml"
-        "navidrome-docker-compose.yml"
-        "homeassistant-docker-compose.yml"
-        "zigbee2mqtt-docker-compose.yml"
+        "jellyfin/docker-compose.yml"
+        "ariang/docker-compose.yml"
+        "webtube/docker-compose.yml"
+        "navidrome/docker-compose.yml"
+        "homeassistant/docker-compose.yml"
+        "zigbee2mqtt/docker-compose.yml"
+        "immich/docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -432,12 +541,13 @@ update_all_services() {
     print_info "更新所有服務 / Updating all services"
     
     local compose_files=(
-        "jellyfin-docker-compose.yml"
-        "ariang-docker-compose.yml"
-        "webtube-docker-compose.yml"
-        "navidrome-docker-compose.yml"
-        "homeassistant-docker-compose.yml"
-        "zigbee2mqtt-docker-compose.yml"
+        "jellyfin/docker-compose.yml"
+        "ariang/docker-compose.yml"
+        "webtube/docker-compose.yml"
+        "navidrome/docker-compose.yml"
+        "homeassistant/docker-compose.yml"
+        "zigbee2mqtt/docker-compose.yml"
+        "immich/docker-compose.yml"
     )
     
     for file in "${compose_files[@]}"; do
@@ -485,13 +595,15 @@ main() {
             4) deploy_navidrome;;
             5) deploy_homeassistant;;
             6) deploy_zigbee2mqtt;;
-            7) deploy_all;;
-            8) custom_install;;
-            9) 
+            7) deploy_immich;;
+            8) deploy_all;;
+            9) custom_install;;
+            10) unified_management;;
+            11) manage_services;;
+            12) 
                 print_info "感謝使用 MyNasDockerS / Thank you for using MyNasDockerS"
                 exit 0
                 ;;
-            m) manage_services;;
             *) print_error "無效選項 / Invalid option";;
         esac
         

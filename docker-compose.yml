@@ -1,0 +1,81 @@
+# MyNasDockerS 統一管理 Docker Compose 檔案
+# MyNasDockerS Unified Docker Compose Management File
+# 
+# 此檔案用於統一管理所有 Docker 服務，每個服務都有自己的資料夾和設定檔
+# This file is used to uniformly manage all Docker services, each service has its own folder and configuration file
+#
+# 使用方法 / Usage:
+#   docker-compose up -d                    # 啟動所有服務 / Start all services
+#   docker-compose up -d jellyfin           # 只啟動 Jellyfin 服務 / Start only Jellyfin service
+#   docker-compose down                     # 停止所有服務 / Stop all services
+#   docker-compose down jellyfin            # 停止特定服務 / Stop specific service
+#   docker-compose ps                       # 查看服務狀態 / View service status
+#   docker-compose logs -f jellyfin         # 查看服務日誌 / View service logs
+
+# 版本聲明 / Version declaration
+version: '3.8'
+
+# 包含所有服務的設定檔 / Include all service configuration files
+include:
+  # 媒體伺服器 / Media Server
+  - ./jellyfin/docker-compose.yml
+  
+  # 下載管理器 / Download Manager
+  - ./ariang/docker-compose.yml
+  
+  # 影片下載器 / Video Downloader
+  - ./webtube/docker-compose.yml
+  
+  # 音樂伺服器 / Music Server
+  - ./navidrome/docker-compose.yml
+  
+  # 智能家居 / Smart Home
+  - ./homeassistant/docker-compose.yml
+  
+  # Zigbee 橋接器 / Zigbee Bridge
+  - ./zigbee2mqtt/docker-compose.yml
+  
+  # 照片管理 / Photo Management
+  - ./immich/docker-compose.yml
+
+# 全域網路設定 / Global network configuration
+networks:
+  # 預設網路，所有服務都可以使用
+  # Default network, all services can use
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  
+  # 媒體服務專用網路 / Media services dedicated network
+  media-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+        
+  # 智能家居服務專用網路 / Smart home services dedicated network
+  smart-home-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+
+# 全域卷設定 / Global volume configuration
+volumes:
+  # 共享資料卷 / Shared data volumes
+  shared-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./shared
+      
+  # 備份卷 / Backup volume
+  backup-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./backup
